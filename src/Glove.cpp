@@ -39,7 +39,7 @@ void Glove::initilize_parameters(){
     use_binary = 0;
     model = 2;
 
-    eta = 0.05;
+    eta = 0.1;
     alpha = 0.75;
     x_max = 10;
 
@@ -149,83 +149,12 @@ void Glove::train_glove(){
 
         current_time = system_clock::now();
         tt = system_clock::to_time_t(current_time);
-        std::cerr<<ctime(&tt)<<"   "<<"cost: "<<total_cost/num_cooccur_record<<std::endl;
+        std::cerr<<"iter: "<<i+1<<"   "<<"cost: "<<total_cost/num_cooccur_record<<ctime(&tt);
 
     }
 }
 
-//train with adaptive sgd
-void Glove::glove_thread(int vid){
-    long long a,b,l1,l2;
-    double diff,fdiff,temp1,temp2;
-    CooccurrenceRecord record;
-
-    std::ifstream in(cooccurrence_record_file,std::ifstream::binary);
-    if(!in.is_open()){
-        std::cerr << "error open file! glove thread "<<vid<<std::endl;
-        return;
-    }
-    in.seekg((num_cooccur_record/num_threads*vid)*(sizeof(CooccurrenceRecord)),in.beg);
-
-    vec_cost[vid] = 0.0;
-    std::vector<double> vec_W_update(vector_size);
-    std::vector<double> vec_W_cooccur_update(vector_size);
-    
-    for(a=0; a<vec_num_per_thread[vid];++a){
-        in.read((char *)&record, sizeof(CooccurrenceRecord));
-        
-        // offset location of w1,w2 in vec_W
-        l1 = record.w1*vector_size;
-        l2 = record.w2*vector_size;
-
-        //calculate cost
-        diff = 0.;
-        for(b=0;b<vector_size;++b) diff += vec_W[b+l1] * vec_W_cooccur[b+l2];
-        diff += vec_b[record.w1] + vec_b[record.w2] - log(record.weight);
-        fdiff = (record.weight > x_max) ? diff : pow(record.weight/x_max,alpha) *diff;
-
-        //check nan and inf
-        if(isnan(diff) || isnan(fdiff) || isinf(diff) || isinf(fdiff)){
-            std::cerr<<"caught nan or inf in diff or fdiff for thread,skip update"<<std::endl;
-            continue;
-        }
-
-        vec_cost[vid] += 0.5 * fdiff * diff;
-
-        // adaptive gradient updates
-        fdiff *= eta;
-        double W_update_sum = 0;
-        double W_cooccur_update_sum = 0;
-        for(b=0; b < vector_size; ++b){
-            temp1 = fdiff * vec_W_cooccur[b+l2];
-            temp2 = fdiff * vec_W[b+l1];
-
-            vec_W_update[b] = temp1 / sqrt(vec_W_grad[b+l1]);
-            vec_W_cooccur_update[b] = temp2 / sqrt(vec_W_cooccur_grad[b+l2]);
-            W_update_sum += vec_W_update[b];
-            W_cooccur_update_sum += vec_W_cooccur_update[b];
-            vec_W_grad[b+l1] += temp1 * temp1;
-            vec_W_cooccur_grad[b+l2] += temp2 * temp2;
-        }
-
-        if(!isnan(W_update_sum) && !isinf(W_update_sum) && !isnan(W_cooccur_update_sum)
-            && !isinf(W_cooccur_update_sum)){
-            for(b=0; b<vector_size; ++b){
-                vec_W[b+l1] -= vec_W_update[b];
-                vec_W_cooccur[b+l2] -= vec_W_cooccur_update[b];
-            }
-        }
-
-        vec_b[record.w1] -= check_nan(fdiff / sqrt(vec_b_grad[record.w1]));
-        vec_b_cooccur[record.w2] -= check_nan(fdiff/sqrt(vec_b_cooccur_grad[record.w2]));
-        fdiff *= fdiff;
-        vec_b_grad[record.w1] += fdiff;
-        vec_b_cooccur_grad[record.w2] += fdiff;
-    }
-
-}
-
-// train with navie sgd
+// //train with adaptive sgd
 // void Glove::glove_thread(int vid){
 //     long long a,b,l1,l2;
 //     double diff,fdiff,temp1,temp2;
@@ -264,22 +193,93 @@ void Glove::glove_thread(int vid){
 //         vec_cost[vid] += 0.5 * fdiff * diff;
 
 //         // adaptive gradient updates
+//         fdiff *= eta;
 //         double W_update_sum = 0;
 //         double W_cooccur_update_sum = 0;
 //         for(b=0; b < vector_size; ++b){
 //             temp1 = fdiff * vec_W_cooccur[b+l2];
 //             temp2 = fdiff * vec_W[b+l1];
 
-//             vec_W[b+l1] -= temp1 * eta;
-//             vec_W_cooccur[b+l2] -= temp2 * eta;
+//             vec_W_update[b] = temp1 / sqrt(vec_W_grad[b+l1]);
+//             vec_W_cooccur_update[b] = temp2 / sqrt(vec_W_cooccur_grad[b+l2]);
+//             W_update_sum += vec_W_update[b];
+//             W_cooccur_update_sum += vec_W_cooccur_update[b];
+//             vec_W_grad[b+l1] += temp1 * temp1;
+//             vec_W_cooccur_grad[b+l2] += temp2 * temp2;
 //         }
 
-//         vec_b[record.w1] -= fdiff*eta ;
-//         vec_b_cooccur[record.w2] -= fdiff*eta;
+//         if(!isnan(W_update_sum) && !isinf(W_update_sum) && !isnan(W_cooccur_update_sum)
+//             && !isinf(W_cooccur_update_sum)){
+//             for(b=0; b<vector_size; ++b){
+//                 vec_W[b+l1] -= vec_W_update[b];
+//                 vec_W_cooccur[b+l2] -= vec_W_cooccur_update[b];
+//             }
+//         }
 
+//         vec_b[record.w1] -= check_nan(fdiff / sqrt(vec_b_grad[record.w1]));
+//         vec_b_cooccur[record.w2] -= check_nan(fdiff/sqrt(vec_b_cooccur_grad[record.w2]));
+//         fdiff *= fdiff;
+//         vec_b_grad[record.w1] += fdiff;
+//         vec_b_cooccur_grad[record.w2] += fdiff;
 //     }
 
 // }
+
+// train with navie sgd
+void Glove::glove_thread(int vid){
+    long long a,b,l1,l2;
+    double diff,fdiff,temp1,temp2;
+    CooccurrenceRecord record;
+
+    std::ifstream in(cooccurrence_record_file,std::ifstream::binary);
+    if(!in.is_open()){
+        std::cerr << "error open file! glove thread "<<vid<<std::endl;
+        return;
+    }
+    in.seekg((num_cooccur_record/num_threads*vid)*(sizeof(CooccurrenceRecord)),in.beg);
+
+    vec_cost[vid] = 0.0;
+    std::vector<double> vec_W_update(vector_size);
+    std::vector<double> vec_W_cooccur_update(vector_size);
+    
+    for(a=0; a<vec_num_per_thread[vid];++a){
+        in.read((char *)&record, sizeof(CooccurrenceRecord));
+        
+        // offset location of w1,w2 in vec_W
+        l1 = record.w1*vector_size;
+        l2 = record.w2*vector_size;
+
+        //calculate cost
+        diff = 0.;
+        for(b=0;b<vector_size;++b) diff += vec_W[b+l1] * vec_W_cooccur[b+l2];
+        diff += vec_b[record.w1] + vec_b[record.w2] - log(record.weight);
+        fdiff = (record.weight > x_max) ? diff : pow(record.weight/x_max,alpha) *diff;
+
+        //check nan and inf
+        if(isnan(diff) || isnan(fdiff) || isinf(diff) || isinf(fdiff)){
+            std::cerr<<"caught nan or inf in diff or fdiff for thread,skip update"<<std::endl;
+            continue;
+        }
+
+        vec_cost[vid] += 0.5 * fdiff * diff;
+
+        // adaptive gradient updates
+        double W_update_sum = 0;
+        double W_cooccur_update_sum = 0;
+        for(b=0; b < vector_size; ++b){
+            temp1 = fdiff * vec_W_cooccur[b+l2];
+            temp2 = fdiff * vec_W[b+l1];
+
+            vec_W[b+l1] -= temp1 * eta;
+            vec_W_cooccur[b+l2] -= temp2 * eta;
+        }
+
+        vec_b[record.w1] -= fdiff*eta ;
+        vec_b_cooccur[record.w2] -= fdiff*eta;
+
+    }
+
+}
 
 void Glove::save_parameters(){
     std::ofstream out(vector_file);

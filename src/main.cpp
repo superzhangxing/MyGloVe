@@ -8,44 +8,44 @@
 #include "Glove.h"
 
 int main(){
-    //test
-    std::cout << "hello" <<std::endl;
-    std::unordered_map<int,int> hash_a;
-    hash_a[1] = 1;
-    std::cout << hash_a[1] << std::endl;
+    // //test
+    // std::cout << "hello" <<std::endl;
+    // std::unordered_map<int,int> hash_a;
+    // hash_a[1] = 1;
+    // std::cout << hash_a[1] << std::endl;
 
-    std::ofstream out("a.test",std::ofstream::binary);
-    if(!out.is_open()){
-        std::cerr<<"error open out test file!"<<std::endl;
-        return 0;
-    }
-    for(int i=0;i<100;++i){
-        out.write((const char*)&i,sizeof(int));
-    }
-
-    out.close();
-
-    std::ifstream in("a.test",std::ifstream::binary);
-    if(!in.is_open()){
-        std::cerr<<"error open in test file!"<<std::endl;
-        return 0;
-    }
-    int count1 = 0;
-    int count2 = 0;
-    int temp;
-    // while(!in.eof()){
-    //     in.read((char *)&temp,sizeof(int));
-    //     count1++;
+    // std::ofstream out("a.test",std::ofstream::binary);
+    // if(!out.is_open()){
+    //     std::cerr<<"error open out test file!"<<std::endl;
+    //     return 0;
     // }
-    // in.seekg(0,in.beg);
-    while(in.peek()!=EOF){
-        in.read((char *)&temp,sizeof(int));
-        count2++;
-    }
+    // for(int i=0;i<100;++i){
+    //     out.write((const char*)&i,sizeof(int));
+    // }
 
-    in.close();
-    std::cerr<<"count1: "<< count1<<std::endl;
-    std::cerr<<"count2: "<< count2<<std::endl;
+    // out.close();
+
+    // std::ifstream in("a.test",std::ifstream::binary);
+    // if(!in.is_open()){
+    //     std::cerr<<"error open in test file!"<<std::endl;
+    //     return 0;
+    // }
+    // int count1 = 0;
+    // int count2 = 0;
+    // int temp;
+    // // while(!in.eof()){
+    // //     in.read((char *)&temp,sizeof(int));
+    // //     count1++;
+    // // }
+    // // in.seekg(0,in.beg);
+    // while(in.peek()!=EOF){
+    //     in.read((char *)&temp,sizeof(int));
+    //     count2++;
+    // }
+
+    // in.close();
+    // std::cerr<<"count1: "<< count1<<std::endl;
+    // std::cerr<<"count2: "<< count2<<std::endl;
 
 
     // VocabCount * vocab_count = new VocabCount();
@@ -65,6 +65,7 @@ int main(){
     Glove * glove_ptr = new Glove();
     glove_ptr->train_glove();
     glove_ptr->save_parameters();
+    delete glove_ptr;
 
 
 

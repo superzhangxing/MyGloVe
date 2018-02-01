@@ -42,14 +42,26 @@ private:
     std::string parameter_file;
     std::vector<long long> vec_num_per_thread;
 
+    // used for sgd
     std::vector<double> vec_W;
     std::vector<double> vec_b;
     std::vector<double> vec_W_cooccur;
     std::vector<double> vec_b_cooccur;
+    // used for adaptive sgd
     std::vector<double> vec_W_grad;
     std::vector<double> vec_W_cooccur_grad;
     std::vector<double> vec_b_grad;
     std::vector<double> vec_b_cooccur_grad;
+    // used for adam sgd
+    std::vector<double> vec_W_V;
+    std::vector<double> vec_W_S;
+    std::vector<double> vec_W_cooccur_V;
+    std::vector<double> vec_W_cooccur_S;
+    std::vector<double> vec_b_V;
+    std::vector<double> vec_b_S;
+    std::vector<double> vec_b_cooccur_V;
+    std::vector<double> vec_b_cooccur_S;
+    double beta1,beta2;
 
     std::vector<double> vec_cost;
     
